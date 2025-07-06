@@ -1,100 +1,267 @@
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 const CartOverlay = ({ onClose }) => {
-  const { cartItems, getCartTotal, getCartItemsCount } = useApp();
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { cartItems, updateCartItemQuantity, removeFromCart } = useApp();
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
 
-  const handleCheckout = () => {
-    if (isAuthenticated) {
-      onClose();
-      navigate('/checkout');
-    } else {
-      onClose();
-      navigate('/login');
+  // Close modal when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (event.target.classList.contains('cart-container')) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [onClose]);
+
+  // Calculate totals
+  const calculateTotals = () => {
+    let subtotal = 0;
+    let vatTotal = 0;
+
+    cartItems.forEach(item => {
+      const itemTotal = item.price * item.quantity;
+      subtotal += itemTotal;
+      if (item.hasVat || item.vat > 0 || (item.priceText && item.priceText.includes('+VAT'))) {
+        vatTotal += itemTotal * 0.15; // 15% VAT
+      }
+    });
+
+    return { subtotal, vatTotal, total: subtotal + vatTotal };
+  };
+
+  const { subtotal, vatTotal, total } = calculateTotals();
+
+  const handleApplyDiscount = () => {
+    const code = discountCode.trim().toUpperCase();
+    let discountAmount = 0;
+
+    switch (code) {
+      case 'SAVE10':
+        discountAmount = subtotal * 0.10;
+        break;
+      case 'SAVE50':
+        discountAmount = subtotal * 0.50;
+        break;
+      case 'WELCOME20':
+        discountAmount = subtotal * 0.20;
+        break;
+      default:
+        discountAmount = 0;
+        alert('Invalid discount code. Try: SAVE10, SAVE50, or WELCOME20');
+        return;
+    }
+
+    setAppliedDiscount(discountAmount);
+  };
+
+  const handleDiscountCodeChange = (e) => {
+    setDiscountCode(e.target.value);
+    // Reset discount when user changes the code
+    if (appliedDiscount > 0) {
+      setAppliedDiscount(0);
     }
   };
 
+  const handleQuantityChange = (itemId, newQuantity) => {
+    if (newQuantity > 0) {
+      updateCartItemQuantity(itemId, newQuantity);
+    } else {
+      removeFromCart(itemId);
+    }
+  };
+
+  const handleProceedToCheckout = () => {
+    if (cartItems.length === 0) {
+      alert('Please add items to your cart before proceeding to checkout.');
+      return;
+    }
+    
+    // Close cart modal
+    onClose();
+    
+    // Navigate to checkout (implement your navigation logic here)
+    console.log('Proceeding to checkout with:', {
+      items: cartItems.length,
+      total: finalTotal.toFixed(2),
+      discount: appliedDiscount.toFixed(2)
+    });
+    
+    alert(`Proceeding to checkout with ${cartItems.length} items. Total: BDT ${finalTotal.toFixed(2)}`);
+  };
+
+  const finalTotal = total - appliedDiscount;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 backdrop-blur-sm p-5">
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-800">Shopping Cart</h2>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onClose}
-              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              ← Continue Shopping
-            </button>
-            <button
-              onClick={onClose}
-              className="text-gray-600 hover:text-gray-800 text-3xl font-light"
-            >
-              ×
-            </button>
-          </div>
+    <div className="cart-container" style={{ display: 'flex' }}>
+      <div className="cart-content">
+        <span className="close-btn" onClick={onClose}>×</span>
+        <div className="breadcrumb">Home / Cart</div>
+        
+        <div className="cart-header">
+          <h2>Shopping Cart</h2>
+          <button className="continue-btn" onClick={onClose}>
+            ← Continue Shopping
+          </button>
         </div>
 
-        {/* Cart Content */}
-        <div className="p-6">
+        <div className="cart-items-list">
           {cartItems.length === 0 ? (
-            <div className="text-center py-12">
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">Product Not Found</h3>
-              <p className="text-gray-500">Please add some products</p>
+            <div className="cart-empty">
+              <h3>Product Not Found</h3>
+              <p>Please add some products</p>
             </div>
           ) : (
-            <>
-              {/* Cart Items */}
-              <div className="space-y-4 mb-6">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex items-center p-4 border rounded-lg bg-gray-50">
-                    <img 
-                      src={item.image} 
-                      alt={item.name}
-                      className="w-20 h-20 object-contain rounded mr-4"
-                    />
-                    <div className="flex-grow">
-                      <h4 className="font-semibold text-gray-800">{item.name}</h4>
-                      <p className="text-gray-600">BDT {item.price} each</p>
-                    </div>
-                    <div className="flex items-center gap-2 mr-4">
-                      <span className="text-gray-600">Qty: {item.quantity}</span>
-                    </div>
-                    <div className="font-bold text-red-800">
-                      BDT {(item.price * item.quantity + (item.hasVat ? item.price * item.quantity * 0.15 : 0)).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Order Summary */}
-              <div className="bg-gray-100 rounded-lg p-6">
-                <h4 className="text-lg font-semibold mb-4">Order Summary</h4>
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between">
-                    <span>Total Items:</span>
-                    <span>{getCartItemsCount()}</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>Order Total:</span>
-                    <span className="text-red-800">BDT {getCartTotal().toFixed(2)}</span>
-                  </div>
-                </div>
-                <button
-                  onClick={handleCheckout}
-                  className="w-full bg-red-800 text-white py-3 rounded-lg font-semibold hover:bg-red-900 transition-colors"
-                >
-                  {isAuthenticated ? 'Proceed to Checkout' : 'Login to Checkout'}
-                </button>
-              </div>
-            </>
+            cartItems.map(item => (
+              <CartItem 
+                key={item.id} 
+                item={item} 
+                onQuantityChange={handleQuantityChange}
+                onRemove={() => removeFromCart(item.id)}
+              />
+            ))
           )}
         </div>
+
+        {cartItems.length > 0 && (
+          <div className="order-summary">
+            <h4>Order Summary</h4>
+            <div className="discount-row">
+              <input 
+                type="text" 
+                placeholder="Discount Code (SAVE10, SAVE50, WELCOME20)" 
+                value={discountCode}
+                onChange={handleDiscountCodeChange}
+              />
+              <button onClick={handleApplyDiscount}>Apply</button>
+            </div>
+            <div className="summary-item">
+              <span>Subtotal</span>
+              <span>BDT {subtotal.toFixed(2)}</span>
+            </div>
+            <div className="summary-item">
+              <span>VAT Included (15%)</span>
+              <span>BDT {vatTotal.toFixed(2)}</span>
+            </div>
+            {appliedDiscount > 0 && (
+              <div className="summary-item">
+                <span>Discount Applied ({discountCode})</span>
+                <span style={{ color: '#28a745' }}>-BDT {appliedDiscount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="summary-item total">
+              <strong>Order Total</strong>
+              <strong>BDT {finalTotal.toFixed(2)}</strong>
+            </div>
+            <button className="checkout-btn" onClick={handleProceedToCheckout}>
+              Proceed to Checkout
+            </button>
+          </div>
+        )}
       </div>
+    </div>
+  );
+};
+
+// CartItem component for the overlay
+const CartItem = ({ item, onQuantityChange, onRemove }) => {
+  const handleQuantityInputChange = (e) => {
+    const newQuantity = parseInt(e.target.value, 10);
+    onQuantityChange(item.id, newQuantity);
+  };
+
+  const incrementQuantity = () => {
+    onQuantityChange(item.id, item.quantity + 1);
+  };
+
+  const decrementQuantity = () => {
+    if (item.quantity > 1) {
+      onQuantityChange(item.id, item.quantity - 1);
+    } else {
+      onRemove();
+    }
+  };
+
+  // Calculate item pricing
+  const itemTotalPrice = item.price * item.quantity;
+  const hasVat = item.hasVat || item.vat > 0 || (item.priceText && item.priceText.includes('+VAT'));
+  const itemVatAmount = hasVat ? itemTotalPrice * 0.15 : 0;
+  const finalItemPrice = itemTotalPrice + itemVatAmount;
+
+  return (
+    <div className="cart-item">
+      <img 
+        src={item.image || item.imageUrl} 
+        alt={item.name || item.title}
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = 'https://placehold.co/80x80/E0E0E0/333333?text=Image+Missing';
+        }}
+      />
+      <div className="cart-item-details">
+        <h4>{item.name || item.title}</h4>
+        <p>
+          BDT {item.price.toFixed(2)} each
+          {hasVat && <span style={{ fontSize: '0.8em', color: '#666' }}> (+VAT)</span>}
+        </p>
+      </div>
+      <div className="cart-item-quantity">
+        <button 
+          onClick={decrementQuantity}
+          disabled={item.quantity <= 1}
+          title={item.quantity <= 1 ? "Remove item" : "Decrease quantity"}
+        >
+          -
+        </button>
+        <input 
+          type="number" 
+          value={item.quantity} 
+          min="1"
+          max="99"
+          onChange={handleQuantityInputChange}
+        />
+        <button 
+          onClick={incrementQuantity}
+          title="Increase quantity"
+        >
+          +
+        </button>
+      </div>
+      <span className="cart-item-total-price">
+        BDT {finalItemPrice.toFixed(2)}
+      </span>
+      <button 
+        className="remove-item-btn" 
+        onClick={onRemove}
+        title="Remove item from cart"
+      >
+        ×
+      </button>
     </div>
   );
 };
