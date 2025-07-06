@@ -1,33 +1,33 @@
-import { useState } from 'react';
+// components/SubcategoryCards.js
+import React from 'react';
 
-const SubcategoryCards = ({ onCategorySelect }) => {
-  const [activeCard, setActiveCard] = useState('');
-
-  const handleCardClick = (category) => {
-    setActiveCard(category);
-    onCategorySelect(category);
+const SubcategoryCards = ({ activeSubcategory, setActiveSubcategory, setCategoryFilter }) => {
+  
+  const handleSubcategoryClick = (subcategory) => {
+    setActiveSubcategory(subcategory);
+    setCategoryFilter(`all-${subcategory}`);
   };
 
   return (
     <section id="subcategoryCardsContainer">
       <div 
-        className={`subcategory-card ${activeCard === 'men' ? 'active' : ''}`}
+        className={`subcategory-card ${activeSubcategory === 'men' ? 'active' : ''}`}
         data-filter="men"
-        onClick={() => handleCardClick('men')}
+        onClick={() => handleSubcategoryClick('men')}
       >
         Men
       </div>
       <div 
-        className={`subcategory-card ${activeCard === 'women' ? 'active' : ''}`}
+        className={`subcategory-card ${activeSubcategory === 'women' ? 'active' : ''}`}
         data-filter="women"
-        onClick={() => handleCardClick('women')}
+        onClick={() => handleSubcategoryClick('women')}
       >
         Women
       </div>
       <div 
-        className={`subcategory-card ${activeCard === 'kids' ? 'active' : ''}`}
+        className={`subcategory-card ${activeSubcategory === 'kids' ? 'active' : ''}`}
         data-filter="kids"
-        onClick={() => handleCardClick('kids')}
+        onClick={() => handleSubcategoryClick('kids')}
       >
         Kids
       </div>

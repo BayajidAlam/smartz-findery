@@ -1,3 +1,4 @@
+// context/AppContext.js
 import { createContext, useContext, useState, useEffect } from 'react';
 import { fetchProducts } from '../data/Products';
 
