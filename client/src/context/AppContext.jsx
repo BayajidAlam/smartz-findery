@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { fetchProducts } from '../data/Products';
 
-
 const AppContext = createContext();
 
 export const useApp = () => {
@@ -54,22 +53,34 @@ export const AppProvider = ({ children }) => {
   };
 
   const loadDarkModePreference = () => {
-    const darkModePreference = localStorage.getItem('darkMode');
-    if (darkModePreference === 'true') {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
+    try {
+      const darkModePreference = localStorage.getItem('darkMode');
+      const isDarkMode = darkModePreference === 'true';
+      setDarkMode(isDarkMode);
+      
+      // Apply dark mode class to body immediately
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+    } catch (error) {
+      console.error('Error loading dark mode preference:', error);
     }
   };
 
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
+    
+    // Save to localStorage
     localStorage.setItem('darkMode', newDarkMode.toString());
     
+    // Toggle body class for CSS styling
     if (newDarkMode) {
-      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark-mode');
     } else {
-      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark-mode');
     }
   };
 

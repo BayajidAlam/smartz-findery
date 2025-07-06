@@ -5,42 +5,14 @@
 
 body {
   font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #E1ccc7;
+  color: #333;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Custom maroon colors for your design */
-:root {
-  --maroon-500: #800000;
-  --maroon-600: #a00000;
-  --maroon-700: #660000;
-  --cream: #E1ccc7;
-}
-
-/* Custom font family utilities */
-.font-montserrat {
-  font-family: 'Montserrat', sans-serif;
-}
-
-.font-inter {
-  font-family: 'Inter', sans-serif;
-}
-
-/* Animations - exactly from your HTML */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* --- Header Styling - EXACT CSS from your HTML --- */
+/* --- Header Styling --- */
 header {
   background: linear-gradient(135deg, #800000 0%, #a00000 100%);
   color: #fff;
@@ -102,7 +74,7 @@ header nav a svg {
   fill: currentColor;
 }
 
-/* --- Toolbar Styling - EXACT CSS from your HTML --- */
+/* --- Toolbar Styling --- */
 .toolbar {
   padding: 20px 25px;
   background: #f0f0f0;
@@ -128,7 +100,7 @@ header nav a svg {
   background-color: #fff;
 }
 
-/* --- Subcategory Cards Container - EXACT CSS from your HTML --- */
+/* --- Subcategory Cards --- */
 #subcategoryCardsContainer {
   display: flex;
   justify-content: center;
@@ -168,71 +140,144 @@ header nav a svg {
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-/* Dark Mode Styling */
-body.dark-mode {
-  background-color: #121212;
-  color: #e0e0e0;
+/* --- Product Grid --- */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 25px;
+  padding: 25px;
 }
 
-body.dark-mode header {
-  background: linear-gradient(135deg, #4d0000 0%, #660000 100%);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background-color: rgba(77, 0, 0, 0.7);
-  border-bottom-color: rgba(255, 255, 255, 0.05);
+.product-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-body.dark-mode header nav a:hover,
-body.dark-mode header nav button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
-body.dark-mode .toolbar {
-  background: #252525;
-  color: #e0e0e0;
-  border-bottom: 1px solid #333;
+.product-card img {
+  max-width: 100%;
+  height: 180px;
+  object-fit: contain;
+  margin-bottom: 10px;
+  border-radius: 5px;
 }
 
-body.dark-mode .toolbar input,
-body.dark-mode .toolbar select {
-  background-color: #333;
-  color: #e0e0e0;
-  border: 1px solid #555;
+.product-card h3 {
+  font-size: 1.2em;
+  margin: 10px 0;
+  color: #333;
 }
 
-body.dark-mode .toolbar select option {
-  background-color: #333;
-  color: #e0e0e0;
+.product-card p {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #800000;
+  margin-bottom: 15px;
 }
 
-body.dark-mode #subcategoryCardsContainer {
-  background-color: #252525;
-  border-bottom-color: #333;
+.product-card button {
+  background: #800000;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  margin-top: auto;
 }
 
-body.dark-mode .subcategory-card {
-  background-color: #333;
-  color: #e0e0e0;
-  border-color: #555;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+.product-card button:hover {
+  background: #a00000;
 }
 
-body.dark-mode .subcategory-card:hover {
-  background-color: #4a4a4a;
-  border-color: #a00000;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+/* --- Floating Cart --- */
+#floatingCart {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #800000;
+  color: white;
+  font-size: 2em;
+  padding: 15px 18px;
+  border-radius: 50%;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  border: 3px solid #fff;
 }
 
-body.dark-mode .subcategory-card.active {
+#floatingCart:hover {
   background-color: #a00000;
-  color: #121212;
-  border-color: #a00000;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  border-color: #eee;
 }
 
-/* --- Login Form Overlay - EXACT CSS from your HTML --- */
+.cart-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ff0000;
+  color: white;
+  font-size: 0.6em;
+  padding: 5px 9px;
+  border-radius: 50%;
+  min-width: 15px;
+  text-align: center;
+  line-height: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  border: 2px solid white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+/* --- Footer --- */
+footer {
+  text-align: center;
+  padding: 20px;
+  background: #e9ecef;
+  color: #555;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 30px;
+}
+
+.footer-links {
+  margin-top: 10px;
+  font-size: 0.9em;
+}
+
+.footer-links a {
+  color: #800000;
+  text-decoration: none;
+  margin: 0 8px;
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: #a00000;
+}
+
+/* --- Login Form --- */
 #loginFormOverlay {
   position: fixed;
   top: 0;
@@ -259,22 +304,6 @@ body.dark-mode .subcategory-card.active {
   animation: fadeIn 0.3s ease-out;
 }
 
-body.dark-mode #loginForm {
-  background: #252525;
-  color: #e0e0e0;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
-
-body.dark-mode #loginForm input {
-  background-color: #333;
-  color: #e0e0e0;
-  border-color: #555;
-}
-
-body.dark-mode #loginForm .close-btn {
-  color: #e0e0e0;
-}
-
 #loginForm h2 {
   margin-top: 0;
   margin-bottom: 20px;
@@ -283,19 +312,11 @@ body.dark-mode #loginForm .close-btn {
   text-align: center;
 }
 
-body.dark-mode #loginForm h2 {
-  color: #e0e0e0;
-}
-
 #loginForm label {
   display: block;
   margin: 15px 0 8px;
   font-weight: bold;
   color: #555;
-}
-
-body.dark-mode #loginForm label {
-  color: #e0e0e0;
 }
 
 #loginForm input {
@@ -350,6 +371,59 @@ body.dark-mode #loginForm label {
   border-top: 1px solid #eee;
 }
 
-body.dark-mode .social-icons {
-  border-top: 1px solid #444;
+/* --- Animations --- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --- Dark Mode --- */
+body.dark-mode {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+body.dark-mode header {
+  background: linear-gradient(135deg, #4d0000 0%, #660000 100%);
+}
+
+body.dark-mode .toolbar {
+  background: #252525;
+  color: #e0e0e0;
+  border-bottom: 1px solid #333;
+}
+
+body.dark-mode .toolbar input,
+body.dark-mode .toolbar select {
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #555;
+}
+
+body.dark-mode #subcategoryCardsContainer {
+  background-color: #252525;
+}
+
+body.dark-mode .subcategory-card {
+  background-color: #333;
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+body.dark-mode .product-card {
+  background-color: #2c2c2c;
+  color: #e0e0e0;
+  border-color: #444;
+}
+
+body.dark-mode footer {
+  background: #252525;
+  color: #e0e0e0;
+  border-top: 1px solid #333;
 }
