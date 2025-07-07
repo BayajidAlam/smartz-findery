@@ -1,11 +1,14 @@
-// components/SubcategoryCards.js
 import React from 'react';
+import { useApp } from '../context/AppContext';
 
 const SubcategoryCards = ({ activeSubcategory, setActiveSubcategory, setCategoryFilter }) => {
+  const { handleCategoryFilter } = useApp();
   
   const handleSubcategoryClick = (subcategory) => {
     setActiveSubcategory(subcategory);
-    setCategoryFilter(`all-${subcategory}`);
+    const filterValue = `all-${subcategory}`;
+    handleCategoryFilter(filterValue);
+    if (setCategoryFilter) setCategoryFilter(filterValue);
   };
 
   return (

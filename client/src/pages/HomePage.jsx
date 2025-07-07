@@ -8,6 +8,7 @@ const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortOption, setSortOption] = useState('default');
+  const [activeSubcategory, setActiveSubcategory] = useState('');
 
   const handleSearch = (term) => {
     setSearchTerm(term);
@@ -31,8 +32,15 @@ const HomePage = () => {
         onSearch={handleSearch}
         onCategoryFilter={handleCategoryFilter}
         onSort={handleSort}
+        activeSubcategory={activeSubcategory}
+        setActiveSubcategory={setActiveSubcategory}
       />
-      <SubcategoryCards onCategorySelect={handleCategorySelect} />
+      <SubcategoryCards 
+        activeSubcategory={activeSubcategory}
+        setActiveSubcategory={setActiveSubcategory}
+        setCategoryFilter={setCategoryFilter}
+        onCategorySelect={handleCategorySelect} 
+      />
       <ProductGrid 
         searchTerm={searchTerm}
         categoryFilter={categoryFilter}

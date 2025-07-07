@@ -11,8 +11,11 @@ const ProductCard = ({ product }) => {
     e.target.src = 'https://placehold.co/200x180/E0E0E0/333333?text=Image+Missing';
   };
 
+  // Support both _id (MongoDB) and id (legacy)
+  const productId = product._id || product.id;
+
   return (
-    <div className="product-card" data-product-id={product.id} data-category={product.category} data-price={product.price}>
+    <div className="product-card" data-product-id={productId} data-category={product.category} data-price={product.price}>
       <img 
         src={product.image} 
         alt={product.name}

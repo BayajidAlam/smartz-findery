@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { apiClient } from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -37,53 +38,43 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  // Mock login function (replace with real API call later)
+  // Real API login function
   const login = async (email, password) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await apiClient.login(email, password);
       
-      // Mock authentication - replace with real logic
-      if (email === "user@example.com" && password === "password123") {
-        const userData = {
-          id: '1',
-          email: email,
-          name: email.split('@')[0],
-        };
-        
+      if (response.success) {
+        const userData = response.user;
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('isLoggedIn', 'true');
         
         return { success: true };
       } else {
-        return { success: false, error: 'Invalid email or password' };
+        return { success: false, error: response.error };
       }
     } catch (error) {
-      return { success: false, error: 'Login failed. Please try again.' };
+      return { success: false, error: error.message };
     }
   };
 
-  // Mock register function (replace with real API call later)
+  // Real API register function
   const register = async (name, email, password) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await apiClient.register(name, email, password);
       
-      // Mock registration - replace with real logic
-      const userData = {
-        id: Date.now().toString(),
-        email: email,
-        name: name,
-      };
-      
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('isLoggedIn', 'true');
-      
-      return { success: true };
+      if (response.success) {
+        const userData = response.user;
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('isLoggedIn', 'true');
+        
+        return { success: true };
+      } else {
+        return { success: false, error: response.error };
+      }
     } catch (error) {
-      return { success: false, error: 'Registration failed. Please try again.' };
+      return { success: false, error: error.message };
     }
   };
 

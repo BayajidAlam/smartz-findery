@@ -1,7 +1,7 @@
-// components/Toolbar.js
 import React from 'react';
+import { useApp } from '../context/AppContext';
 
-// Category mappings for filtering
+// Category mappings for filtering (keeping your original structure)
 const categoryMappings = {
   "initial": [
     { value: "all", text: "All Products" },
@@ -27,15 +27,13 @@ const categoryMappings = {
 };
 
 const Toolbar = ({ 
-  searchTerm, 
-  setSearchTerm, 
-  categoryFilter, 
-  setCategoryFilter, 
-  sortOption, 
-  setSortOption, 
+  onSearch, 
+  onCategoryFilter, 
+  onSort,
   activeSubcategory,
   setActiveSubcategory
 }) => {
+  const { filters, handleSearch, handleCategoryFilter, handleSort } = useApp();
   
   // Get current category options based on active subcategory
   const getCurrentCategoryOptions = () => {
@@ -45,12 +43,33 @@ const Toolbar = ({
     return categoryMappings.initial;
   };
 
+  const handleSearchChange = (e) => {
+    const searchValue = e.target.value;
+    handleSearch(searchValue);
+    if (onSearch) onSearch(searchValue);
+  };
+
   const handleCategoryChange = (e) => {
-    setCategoryFilter(e.target.value);
+    const categoryValue = e.target.value;
+    handleCategoryFilter(categoryValue);
+    if (onCategoryFilter) onCategoryFilter(categoryValue);
+    
     // Clear active subcategory when dropdown changes
     if (setActiveSubcategory) {
       setActiveSubcategory('');
     }
+  };
+
+  const handleSortChange = (e) => {
+    const sortValue = e.target.value;
+    // Convert your old sort values to new ones
+    let apiSortValue = sortValue;
+    if (sortValue === 'low-high') apiSortValue = 'price-low';
+    if (sortValue === 'high-low') apiSortValue = 'price-high';
+    if (sortValue === 'default') apiSortValue = 'newest';
+    
+    handleSort(apiSortValue);
+    if (onSort) onSort(sortValue);
   };
 
   return (
@@ -59,13 +78,13 @@ const Toolbar = ({
         type="text"
         id="searchInput"
         placeholder="Search products..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        value={filters.search || ''}
+        onChange={handleSearchChange}
       />
       
       <select
         id="categoryFilter"
-        value={categoryFilter}
+        value={filters.category || 'all'}
         onChange={handleCategoryChange}
       >
         {getCurrentCategoryOptions().map(option => (
@@ -77,8 +96,9 @@ const Toolbar = ({
       
       <select
         id="sortSelect"
-        value={sortOption}
-        onChange={(e) => setSortOption(e.target.value)}
+        value={filters.sort === 'price-low' ? 'low-high' : 
+               filters.sort === 'price-high' ? 'high-low' : 'default'}
+        onChange={handleSortChange}
       >
         <option value="default">Sort By</option>
         <option value="low-high">Price: Low to High</option>

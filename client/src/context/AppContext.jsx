@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { fetchProducts } from '../data/Products';
+import { apiClient } from '../utils/api';
 
 const AppContext = createContext();
 
@@ -16,15 +16,25 @@ export const AppProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Simple filter state that works with your existing design
+  const [filters, setFilters] = useState({
+    search: '',
+    category: 'all',
+    sort: 'newest'
+  });
 
-  // Load products on app start
   useEffect(() => {
     loadProducts();
     loadCartFromStorage();
     loadDarkModePreference();
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Load products when filters change
+  useEffect(() => {
+    loadProducts();
+  }, [filters]);
+
   useEffect(() => {
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
   }, [cartItems]);
@@ -32,13 +42,27 @@ export const AppProvider = ({ children }) => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const productsData = await fetchProducts();
+      const productsData = await apiClient.getProducts(filters);
       setProducts(productsData);
     } catch (error) {
       console.error('Error loading products:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Simple handlers that update filters
+  const handleSearch = (searchTerm) => {
+    setFilters(prev => ({ ...prev, search: searchTerm }));
+  };
+
+  const handleCategoryFilter = (category) => {
+    setFilters(prev => ({ ...prev, category }));
+  };
+
+  const handleSort = (sort) => {
+    setFilters(prev => ({ ...prev, sort }));
   };
 
   const loadCartFromStorage = () => {
@@ -58,7 +82,6 @@ export const AppProvider = ({ children }) => {
       const isDarkMode = darkModePreference === 'true';
       setDarkMode(isDarkMode);
       
-      // Apply dark mode class to body immediately
       if (isDarkMode) {
         document.body.classList.add('dark-mode');
       } else {
@@ -72,11 +95,8 @@ export const AppProvider = ({ children }) => {
   const toggleDarkMode = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
-    
-    // Save to localStorage
     localStorage.setItem('darkMode', newDarkMode.toString());
     
-    // Toggle body class for CSS styling
     if (newDarkMode) {
       document.body.classList.add('dark-mode');
     } else {
@@ -86,11 +106,11 @@ export const AppProvider = ({ children }) => {
 
   const addToCart = (product) => {
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
+      const existingItem = prevItems.find(item => (item.id || item._id) === (product.id || product._id));
       
       if (existingItem) {
         return prevItems.map(item =>
-          item.id === product.id
+          (item.id || item._id) === (product.id || product._id)
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -101,10 +121,10 @@ export const AppProvider = ({ children }) => {
   };
 
   const removeFromCart = (productId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+    setCartItems(prevItems => prevItems.filter(item => (item.id || item._id) !== productId));
   };
 
-  const updateCartQuantity = (productId, quantity) => {
+  const updateCartItemQuantity = (productId, quantity) => {
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
@@ -112,7 +132,7 @@ export const AppProvider = ({ children }) => {
 
     setCartItems(prevItems =>
       prevItems.map(item =>
-        item.id === productId
+        (item.id || item._id) === productId
           ? { ...item, quantity: parseInt(quantity) }
           : item
       )
@@ -140,13 +160,17 @@ export const AppProvider = ({ children }) => {
     cartItems,
     loading,
     darkMode,
+    filters,
     addToCart,
     removeFromCart,
-    updateCartQuantity,
+    updateCartItemQuantity,
     clearCart,
     getCartTotal,
     getCartItemsCount,
     toggleDarkMode,
+    handleSearch,
+    handleCategoryFilter,
+    handleSort,
     refreshProducts: loadProducts,
   };
 
