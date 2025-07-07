@@ -55,6 +55,7 @@ const CheckoutPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [currentOrder, setCurrentOrder] = useState(null);
   const [clientSecret, setClientSecret] = useState('');
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
 
   const calculateTotals = () => {
     let subtotal = 0;
@@ -73,11 +74,12 @@ const CheckoutPage = () => {
 
   const { subtotal, vatTotal, total } = calculateTotals();
 
+  // Modified useEffect to prevent redirect after payment completion
   useEffect(() => {
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && !paymentCompleted) {
       navigate('/');
     }
-  }, [cartItems, navigate]);
+  }, [cartItems, navigate, paymentCompleted]);
 
   const handleInputChange = (field, value) => {
     setCustomerDetails(prev => ({
@@ -208,10 +210,25 @@ const CheckoutPage = () => {
         console.error('Payment failed:', error);
       } else if (paymentIntent.status === 'succeeded') {
         try {
+          console.log('🎉 Payment succeeded!');
           await apiClient.confirmPayment(paymentIntent.id, currentOrder._id);
+          console.log('✅ Payment confirmed');
+          
+          // Mark payment as completed BEFORE clearing cart
+          setPaymentCompleted(true);
+          
+          // Clear cart
           clearCart();
+          console.log('🧹 Cart cleared');
+          
           alert('Payment successful! Your order has been placed.');
-          navigate('/');
+          
+          // Navigate with a small delay and replace
+          setTimeout(() => {
+            console.log('🚀 Navigating to /my-orders');
+            navigate('/my-orders', { replace: true });
+          }, 100);
+          
         } catch (confirmError) {
           console.error('Payment confirmation error:', confirmError);
           setErrors({ payment: 'Payment succeeded but order confirmation failed. Please contact support.' });
@@ -227,7 +244,7 @@ const CheckoutPage = () => {
     }
   };
 
-  if (cartItems.length === 0) {
+  if (cartItems.length === 0 && !paymentCompleted) {
     return null;
   }
 
@@ -687,7 +704,7 @@ const CheckoutPage = () => {
                     ) : (
                       <>
                         <FaCheck style={{ marginRight: '8px' }} />
-                        Pay ${total.toFixed(2)} USD
+                        Pay BDT {total.toFixed(2)}
                       </>
                     )}
                   </button>
@@ -740,11 +757,11 @@ const CheckoutPage = () => {
                       {item.name || item.title}
                     </div>
                     <div style={{ fontSize: '12px', color: '#666' }}>
-                      Qty: {item.quantity} × ${item.price.toFixed(2)}
+                      Qty: {item.quantity} × BDT {item.price.toFixed(2)}
                     </div>
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
-                    ${(item.price * item.quantity).toFixed(2)}
+                    BDT {(item.price * item.quantity).toFixed(2)}
                   </div>
                 </div>
               ))}
@@ -754,12 +771,12 @@ const CheckoutPage = () => {
             <div style={{ borderTop: '1px solid #eee', paddingTop: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
                 <span style={{ color: '#666' }}>Subtotal ({cartItems.length} items)</span>
-                <span style={{ color: '#333', fontWeight: '500' }}>${subtotal.toFixed(2)}</span>
+                <span style={{ color: '#333', fontWeight: '500' }}>BDT {subtotal.toFixed(2)}</span>
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
                 <span style={{ color: '#666' }}>VAT (15%)</span>
-                <span style={{ color: '#333', fontWeight: '500' }}>${vatTotal.toFixed(2)}</span>
+                <span style={{ color: '#333', fontWeight: '500' }}>BDT {vatTotal.toFixed(2)}</span>
               </div>
               
               <div style={{ 
@@ -771,7 +788,7 @@ const CheckoutPage = () => {
                 fontWeight: 'bold'
               }}>
                 <span style={{ color: '#333' }}>Total</span>
-                <span style={{ color: '#dc2626' }}>${total.toFixed(2)}</span>
+                <span style={{ color: '#dc2626' }}>BDT {total.toFixed(2)}</span>
               </div>
             </div>
 
@@ -806,4 +823,4 @@ const CheckoutPage = () => {
   );
 };
 
-export default CheckoutPage
+export default CheckoutPage;
