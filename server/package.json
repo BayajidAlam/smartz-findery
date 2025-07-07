@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Simple backend for Smartz Findery",
   "main": "server.js",
+  "module": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
