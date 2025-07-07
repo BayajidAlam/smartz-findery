@@ -1,8 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 require("dotenv").config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -42,23 +42,57 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Updated Order Schema to match frontend expectations
 const orderSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    orderNumber: {
+      type: String,
+      unique: true,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: false, // Allow guest orders
+    },
+    customerDetails: {
+      firstName: { type: String, required: true },
+      lastName: { type: String, required: true },
+      email: { type: String, required: true },
+      phone: { type: String, required: true },
+      address: { type: String, required: true },
+      city: { type: String, required: true },
+      country: { type: String, required: true },
+      zipCode: { type: String, required: true },
+    },
     items: [
       {
         productId: String,
         name: String,
         price: Number,
         quantity: Number,
+        image: String,
       },
     ],
+    subtotal: { type: Number, required: true },
+    vatTotal: { type: Number, required: true },
     total: Number,
+    paymentMethod: { type: String, default: "stripe" },
     status: { type: String, default: "pending" },
     paymentIntentId: String,
   },
   { timestamps: true }
 );
+
+// Auto-generate order number
+orderSchema.pre("save", async function (next) {
+  if (!this.orderNumber) {
+    const count = await this.constructor.countDocuments();
+    this.orderNumber = `ORD-${Date.now()}-${(count + 1)
+      .toString()
+      .padStart(4, "0")}`;
+  }
+  next();
+});
 
 const User = mongoose.model("User", userSchema);
 const Product = mongoose.model("Product", productSchema);
@@ -233,7 +267,7 @@ app.delete("/api/products/:id", requireAdmin, async (req, res) => {
 });
 
 // Get unique categories
-app.get("/api/products/categories", async (req, res) => {
+app.get("/api/categories", async (req, res) => {
   try {
     const categories = await Product.distinct("category");
     res.json(categories);
@@ -243,7 +277,7 @@ app.get("/api/products/categories", async (req, res) => {
 });
 
 // Get price range
-app.get("/api/products/price-range", async (req, res) => {
+app.get("/api/price-range", async (req, res) => {
   try {
     const result = await Product.aggregate([
       {
@@ -262,24 +296,108 @@ app.get("/api/products/price-range", async (req, res) => {
   }
 });
 
-// Stripe Routes
 app.post("/api/create-payment-intent", async (req, res) => {
   try {
-    const { amount, currency = "usd" } = req.body;
+    console.log("=== CREATE PAYMENT INTENT DEBUG ===");
+    console.log("Request body:", req.body);
+    console.log("Stripe secret key exists:", !!process.env.STRIPE_SECRET_KEY);
+    console.log(
+      "Stripe secret key preview:",
+      process.env.STRIPE_SECRET_KEY
+        ? process.env.STRIPE_SECRET_KEY.substring(0, 10) + "..."
+        : "NOT SET"
+    );
 
+    const { amount, currency = "usd", orderId } = req.body;
+
+    console.log("Parsed values:");
+    console.log("- amount:", amount, typeof amount);
+    console.log("- currency:", currency);
+    console.log("- orderId:", orderId);
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error("STRIPE_SECRET_KEY is not set in environment variables");
+      return res.status(500).json({
+        success: false,
+        error: "Server configuration error: Stripe not configured",
+      });
+    }
+
+    if (!amount || amount <= 0) {
+      console.error("Invalid amount:", amount);
+      return res.status(400).json({
+        success: false,
+        error: "Invalid amount provided",
+        details: `Amount was: ${amount} (${typeof amount})`,
+      });
+    }
+
+    const amountInCents = Math.round(amount * 100);
+    console.log("Amount in cents:", amountInCents);
+
+    console.log("Creating Stripe payment intent...");
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency,
+      amount: amountInCents,
+      currency: currency.toLowerCase(),
       automatic_payment_methods: {
         enabled: true,
       },
+      metadata: {
+        orderId: orderId || "N/A",
+      },
+    });
+
+    console.log("Payment intent created successfully:", paymentIntent.id);
+
+    res.json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+    });
+  } catch (error) {
+    console.error("=== STRIPE ERROR ===");
+    console.error("Error type:", error.constructor.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+
+    res.status(400).json({
+      success: false,
+      error: "Failed to create payment intent",
+      details: error.message,
+      type: error.type || "unknown_error",
+    });
+  }
+});
+
+// Also add this test route to verify Stripe is working:
+app.get("/api/test-stripe", async (req, res) => {
+  try {
+    console.log("Testing Stripe configuration...");
+    console.log("STRIPE_SECRET_KEY exists:", !!process.env.STRIPE_SECRET_KEY);
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({
+        error: "STRIPE_SECRET_KEY not set in environment variables",
+      });
+    }
+
+    // Test with a minimal payment intent
+    const testPayment = await stripe.paymentIntents.create({
+      amount: 100, // $1.00
+      currency: "usd",
     });
 
     res.json({
-      clientSecret: paymentIntent.client_secret,
+      success: true,
+      message: "Stripe is configured correctly",
+      testPaymentId: testPayment.id,
     });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Stripe test failed:", error);
+    res.status(500).json({
+      error: "Stripe configuration test failed",
+      details: error.message,
+    });
   }
 });
 
@@ -287,69 +405,195 @@ app.post("/api/confirm-payment", async (req, res) => {
   try {
     const { paymentIntentId, orderId } = req.body;
 
+    if (!paymentIntentId) {
+      return res.status(400).json({
+        success: false,
+        error: "Payment intent ID is required",
+      });
+    }
+
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status === "succeeded") {
       // Update order status
-      await Order.findByIdAndUpdate(orderId, {
-        status: "paid",
-        paymentIntentId: paymentIntentId,
-      });
+      if (orderId) {
+        const order = await Order.findByIdAndUpdate(
+          orderId,
+          {
+            status: "paid",
+            paymentIntentId: paymentIntentId,
+          },
+          { new: true }
+        );
 
-      res.json({ success: true, status: "paid" });
+        if (!order) {
+          return res.status(404).json({
+            success: false,
+            error: "Order not found",
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        status: "paid",
+        message: "Payment confirmed successfully",
+      });
     } else {
-      res.json({ success: false, status: paymentIntent.status });
+      res.json({
+        success: false,
+        status: paymentIntent.status,
+        message: `Payment status: ${paymentIntent.status}`,
+      });
     }
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Payment confirmation error:", error);
+    res.status(400).json({
+      success: false,
+      error: "Failed to confirm payment",
+      details: error.message,
+    });
   }
 });
 
-// Order Routes
-app.post("/api/orders", requireAuth, async (req, res) => {
+// Enhanced Order Routes
+app.post("/api/orders", async (req, res) => {
   try {
-    const order = new Order(req.body);
+    const {
+      userId,
+      customerDetails,
+      items,
+      subtotal,
+      vatTotal,
+      total,
+      paymentMethod = "stripe",
+    } = req.body;
+
+    // Validate required fields
+    if (!customerDetails || !items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Customer details and items are required",
+      });
+    }
+
+    if (!total || total <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid total amount",
+      });
+    }
+
+    // Create new order
+    const order = new Order({
+      userId: userId || null,
+      customerDetails,
+      items,
+      subtotal: subtotal || 0,
+      vatTotal: vatTotal || 0,
+      total,
+      paymentMethod,
+      status: "pending",
+    });
+
     await order.save();
-    res.json(order);
+
+    res.status(201).json({
+      success: true,
+      ...order.toObject(), // Return the order data in the format your frontend expects
+      _id: order._id, // Ensure _id is included
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Error creating order:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to create order",
+      details: error.message,
+    });
   }
 });
 
-app.get("/api/orders/user/:userId", requireAuth, async (req, res) => {
+app.get("/api/orders/user/:userId", async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.params.userId });
-    res.json(orders);
+    const orders = await Order.find({ userId: req.params.userId }).sort({
+      createdAt: -1,
+    });
+    res.json({
+      success: true,
+      orders: orders,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching user orders:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 
 // Admin only - view all orders
 app.get("/api/orders", requireAdmin, async (req, res) => {
   try {
-    const orders = await Order.find().populate("userId", "name email");
-    res.json(orders);
+    const orders = await Order.find()
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+    res.json({
+      success: true,
+      orders: orders,
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching orders:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 
-// Admin only - update order status
-app.put("/api/orders/:id/status", requireAdmin, async (req, res) => {
+// Enhanced order status update
+app.put("/api/orders/:id/status", async (req, res) => {
   try {
     const { status } = req.body;
+
+    const validStatuses = [
+      "pending",
+      "paid",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled",
+    ];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid status. Valid statuses: " + validStatuses.join(", "),
+      });
+    }
+
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { status },
       { new: true }
     );
+
     if (!order) {
-      return res.status(404).json({ error: "Order not found" });
+      return res.status(404).json({
+        success: false,
+        error: "Order not found",
+      });
     }
-    res.json(order);
+
+    res.json({
+      success: true,
+      ...order.toObject(),
+      message: `Order status updated to ${status}`,
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Error updating order status:", error);
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 
@@ -393,6 +637,18 @@ app.post("/api/seed", async (req, res) => {
   }
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    error: "Something went wrong!",
+    details: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;
