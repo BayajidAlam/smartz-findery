@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "../context/AuthContext";
 import { AppProvider } from "../context/AppContext";
 import PrivateRoute from "./PrivateRoute";
+import AdminRoute from "./AdminRoute";
 
 // Import pages
 import HomePage from "../pages/HomePage";
@@ -9,6 +10,7 @@ import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import CheckoutPage from "../pages/CheckoutPage";
 import MyOrdersPage from "../pages/MyOrdersPage";
+import MyProductsPage from "../pages/MyProductsPage"; // ADD THIS LINE
 
 const AppRouter = () => {
   return (
@@ -37,6 +39,16 @@ const AppRouter = () => {
                 <PrivateRoute>
                   <MyOrdersPage />
                 </PrivateRoute>
+              }
+            />
+
+            {/* Admin Routes */}
+            <Route
+              path="/my-products"
+              element={
+                <AdminRoute>
+                  <MyProductsPage />
+                </AdminRoute>
               }
             />
 

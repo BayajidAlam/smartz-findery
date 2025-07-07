@@ -1,4 +1,3 @@
-// utils/api.js
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 class ApiClient {
@@ -161,6 +160,13 @@ class ApiClient {
     return this.request("/confirm-payment", {
       method: "POST",
       body: JSON.stringify({ paymentIntentId, orderId }),
+    });
+  }
+
+  // ADD THIS NEW METHOD FOR ADMIN SEEDING
+  async seedProducts() {
+    return this.request("/seed", {
+      method: "POST",
     });
   }
 }
