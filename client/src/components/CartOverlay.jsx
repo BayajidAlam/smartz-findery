@@ -1,42 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useState, useEffect } from "react";
+import { useApp } from "../context/AppContext";
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const CartOverlay = ({ onClose }) => {
   const { cartItems, updateCartItemQuantity, removeFromCart } = useApp();
-  const [discountCode, setDiscountCode] = useState('');
+  const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(0);
+  
+  // Move hooks to component level
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   // Close modal when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (event.target.classList.contains('cart-container')) {
+      if (event.target.classList.contains("cart-container")) {
         onClose();
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, [onClose]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    
+    document.body.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, []);
 
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEscapeKey = (event) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         onClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscapeKey);
-    return () => document.removeEventListener('keydown', handleEscapeKey);
+    document.addEventListener("keydown", handleEscapeKey);
+    return () => document.removeEventListener("keydown", handleEscapeKey);
   }, [onClose]);
 
   // Calculate totals
@@ -44,10 +50,14 @@ const CartOverlay = ({ onClose }) => {
     let subtotal = 0;
     let vatTotal = 0;
 
-    cartItems.forEach(item => {
+    cartItems.forEach((item) => {
       const itemTotal = item.price * item.quantity;
       subtotal += itemTotal;
-      if (item.hasVat || item.vat > 0 || (item.priceText && item.priceText.includes('+VAT'))) {
+      if (
+        item.hasVat ||
+        item.vat > 0 ||
+        (item.priceText && item.priceText.includes("+VAT"))
+      ) {
         vatTotal += itemTotal * 0.15; // 15% VAT
       }
     });
@@ -62,18 +72,18 @@ const CartOverlay = ({ onClose }) => {
     let discountAmount = 0;
 
     switch (code) {
-      case 'SAVE10':
-        discountAmount = subtotal * 0.10;
+      case "SAVE10":
+        discountAmount = subtotal * 0.1;
         break;
-      case 'SAVE50':
-        discountAmount = subtotal * 0.50;
+      case "SAVE50":
+        discountAmount = subtotal * 0.5;
         break;
-      case 'WELCOME20':
-        discountAmount = subtotal * 0.20;
+      case "WELCOME20":
+        discountAmount = subtotal * 0.2;
         break;
       default:
         discountAmount = 0;
-        alert('Invalid discount code. Try: SAVE10, SAVE50, or WELCOME20');
+        alert("Invalid discount code. Try: SAVE10, SAVE50, or WELCOME20");
         return;
     }
 
@@ -98,31 +108,33 @@ const CartOverlay = ({ onClose }) => {
 
   const handleProceedToCheckout = () => {
     if (cartItems.length === 0) {
-      alert('Please add items to your cart before proceeding to checkout.');
+      alert("Please add items to your cart before proceeding to checkout.");
       return;
     }
-    
+
     // Close cart modal
     onClose();
-    
-    // Navigate to checkout (implement your navigation logic here)
-    console.log('Proceeding to checkout with:', {
-      items: cartItems.length,
-      total: finalTotal.toFixed(2),
-      discount: appliedDiscount.toFixed(2)
-    });
-    
-    alert(`Proceeding to checkout with ${cartItems.length} items. Total: BDT ${finalTotal.toFixed(2)}`);
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    // Navigate to checkout page
+    navigate("/checkout");
   };
 
   const finalTotal = total - appliedDiscount;
 
   return (
-    <div className="cart-container" style={{ display: 'flex' }}>
+    <div className="cart-container" style={{ display: "flex" }}>
       <div className="cart-content">
-        <span className="close-btn" onClick={onClose}>×</span>
+        <span className="close-btn" onClick={onClose}>
+          ×
+        </span>
         <div className="breadcrumb">Home / Cart</div>
-        
+
         <div className="cart-header">
           <h2>Shopping Cart</h2>
           <button className="continue-btn" onClick={onClose}>
@@ -137,10 +149,10 @@ const CartOverlay = ({ onClose }) => {
               <p>Please add some products</p>
             </div>
           ) : (
-            cartItems.map(item => (
-              <CartItem 
-                key={item.id} 
-                item={item} 
+            cartItems.map((item) => (
+              <CartItem
+                key={item.id}
+                item={item}
                 onQuantityChange={handleQuantityChange}
                 onRemove={() => removeFromCart(item.id)}
               />
@@ -152,9 +164,9 @@ const CartOverlay = ({ onClose }) => {
           <div className="order-summary">
             <h4>Order Summary</h4>
             <div className="discount-row">
-              <input 
-                type="text" 
-                placeholder="Discount Code (SAVE10, SAVE50, WELCOME20)" 
+              <input
+                type="text"
+                placeholder="Discount Code (SAVE10, SAVE50, WELCOME20)"
                 value={discountCode}
                 onChange={handleDiscountCodeChange}
               />
@@ -171,7 +183,9 @@ const CartOverlay = ({ onClose }) => {
             {appliedDiscount > 0 && (
               <div className="summary-item">
                 <span>Discount Applied ({discountCode})</span>
-                <span style={{ color: '#28a745' }}>-BDT {appliedDiscount.toFixed(2)}</span>
+                <span style={{ color: "#28a745" }}>
+                  -BDT {appliedDiscount.toFixed(2)}
+                </span>
               </div>
             )}
             <div className="summary-item total">
@@ -209,54 +223,57 @@ const CartItem = ({ item, onQuantityChange, onRemove }) => {
 
   // Calculate item pricing
   const itemTotalPrice = item.price * item.quantity;
-  const hasVat = item.hasVat || item.vat > 0 || (item.priceText && item.priceText.includes('+VAT'));
+  const hasVat =
+    item.hasVat ||
+    item.vat > 0 ||
+    (item.priceText && item.priceText.includes("+VAT"));
   const itemVatAmount = hasVat ? itemTotalPrice * 0.15 : 0;
   const finalItemPrice = itemTotalPrice + itemVatAmount;
 
   return (
     <div className="cart-item">
-      <img 
-        src={item.image || item.imageUrl} 
+      <img
+        src={item.image || item.imageUrl}
         alt={item.name || item.title}
         onError={(e) => {
           e.target.onerror = null;
-          e.target.src = 'https://placehold.co/80x80/E0E0E0/333333?text=Image+Missing';
+          e.target.src =
+            "https://placehold.co/80x80/E0E0E0/333333?text=Image+Missing";
         }}
       />
       <div className="cart-item-details">
         <h4>{item.name || item.title}</h4>
         <p>
           BDT {item.price.toFixed(2)} each
-          {hasVat && <span style={{ fontSize: '0.8em', color: '#666' }}> (+VAT)</span>}
+          {hasVat && (
+            <span style={{ fontSize: "0.8em", color: "#666" }}> (+VAT)</span>
+          )}
         </p>
       </div>
       <div className="cart-item-quantity">
-        <button 
+        <button
           onClick={decrementQuantity}
           disabled={item.quantity <= 1}
           title={item.quantity <= 1 ? "Remove item" : "Decrease quantity"}
         >
           -
         </button>
-        <input 
-          type="number" 
-          value={item.quantity} 
+        <input
+          type="number"
+          value={item.quantity}
           min="1"
           max="99"
           onChange={handleQuantityInputChange}
         />
-        <button 
-          onClick={incrementQuantity}
-          title="Increase quantity"
-        >
+        <button onClick={incrementQuantity} title="Increase quantity">
           +
         </button>
       </div>
       <span className="cart-item-total-price">
         BDT {finalItemPrice.toFixed(2)}
       </span>
-      <button 
-        className="remove-item-btn" 
+      <button
+        className="remove-item-btn"
         onClick={onRemove}
         title="Remove item from cart"
       >
