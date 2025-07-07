@@ -1,6 +1,5 @@
-// src/utils/api.js
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+// utils/api.js
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 class ApiClient {
   constructor() {
@@ -24,14 +23,36 @@ class ApiClient {
       config.headers.userRole = user.role;
     }
 
-    const response = await fetch(url, config);
+    console.log('🌐 API Request:', {
+      url,
+      headers: config.headers,
+      method: config.method || 'GET'
+    });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Something went wrong");
+    try {
+      const response = await fetch(url, config);
+      
+      console.log('📡 API Response Status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error Response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ API Success Response:', data);
+      return data;
+    } catch (error) {
+      console.error(`❌ API request failed for ${endpoint}:`, error);
+      throw error;
     }
-
-    return response.json();
   }
 
   // Auth methods
@@ -49,7 +70,7 @@ class ApiClient {
     });
   }
 
-  // Enhanced product methods
+  // Product methods
   async getProducts(filters = {}) {
     const params = new URLSearchParams();
 
@@ -110,6 +131,10 @@ class ApiClient {
   }
 
   async getUserOrders(userId) {
+    console.log('🔍 Getting orders for userId:', userId);
+    if (!userId) {
+      throw new Error('User ID is required to fetch orders');
+    }
     return this.request(`/orders/user/${userId}`);
   }
 
